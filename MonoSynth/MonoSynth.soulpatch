@@ -1,0 +1,15 @@
+
+{
+    "soulPatchV1":
+    {
+        "ID":               "com.yourcompany.MonoSynth",
+        "version":          "0.1",
+        "name":             "MonoSynth",
+        "description":      "This is a SOUL Patch called MonoSynth!",
+        "category":         "synth",
+        "manufacturer":     "Your Company Name",
+        "isInstrument":     "true",
+
+        "source":           [ "MonoSynth.soul" ],
+    }
+}

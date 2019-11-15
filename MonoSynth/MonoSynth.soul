@@ -1,0 +1,168 @@
+
+/**
+    This is an auto-generated SOUL patch template.
+    This example code simply plays a trivial sinewave mono-synth, and
+    it's up to you to build upon this and create a real synthesiser!
+*/
+graph MonoSynth  [[main]]
+{
+    input event  float attackRate    [[ name: "Attack",   min: 0, max: 100,  init: 20,  unit: "%" ]];
+    input event  float decayRate     [[ name: "Decay",    min: 0, max: 100,  init: 100, unit: "%" ]];
+    input stream float sustainLevel  [[ name: "Sustain",  min: 0, max: 1,    init:  0,  step: 0.01 ]];
+    input event  float releaseRate   [[ name: "Release",  min: 0, max: 100,  init: 40,  unit: "%" ]];
+
+    input event midi::Message midiIn;
+
+    output stream float audioOut;
+
+    let
+    {
+        midiParser = midi::MPEParser;
+        voice      = SineOsc;
+        gain       = Gain;
+        envelope   = ADSREnvelope;
+    }
+
+    connection
+    {
+        attackRate   -> envelope.attackRate;
+        decayRate    -> envelope.decayRate;
+        sustainLevel -> envelope.sustainLevel;
+        releaseRate  -> envelope.releaseRate;
+
+        midiIn              -> midiParser.parseMIDI;
+        midiParser.eventOut -> voice.eventIn, envelope.eventIn;
+        envelope.audioOut   -> gain.gainIn;
+        voice.audioOut      -> gain.audioIn;
+        gain.audioOut       -> audioOut;
+    }
+}
+
+//==============================================================================
+processor Gain
+{
+    input stream float audioIn, gainIn;
+    output stream float audioOut;
+
+    void run()
+    {
+        loop
+        {
+            audioOut << audioIn * gainIn;
+            advance();
+        }
+    }
+}
+
+//==============================================================================
+processor ADSREnvelope
+{
+    input event (soul::NoteEvents::NoteOn,
+                 soul::NoteEvents::NoteOff) eventIn;
+
+    input event  float attackRate    [[ name: "Attack",   min: 0, max: 100,  init: 20,  unit: "%" ]];
+    input event  float decayRate     [[ name: "Decay",    min: 0, max: 100,  init: 100, unit: "%" ]];
+    input stream float sustainLevel  [[ name: "Sustain",  min: 0, max: 1,    init:  0,  step: 0.01 ]];
+    input event  float releaseRate   [[ name: "Release",  min: 0, max: 100,  init: 40,  unit: "%" ]];
+
+    output stream float audioOut;
+
+    event eventIn (soul::NoteEvents::NoteOn noteOn)     { noteActive = true; }
+    event eventIn (soul::NoteEvents::NoteOff noteOff)   { noteActive = false; }
+
+    event attackRate (float f)                          { attackRamp = 1.0f / rateToSamples (f); }
+    event decayRate (float f)                           { decayMultiplier = rateToMultiplier (f); }
+    event releaseRate (float f)                         { releaseMultiplier = rateToMultiplier (f); }
+
+    float rateToSamples (float rate)
+    {
+        return float (processor.frequency) * (0.001f + 9.999f * pow (rate * 0.01f, 4.0f));
+    }
+
+    float rateToMultiplier (float rate)
+    {
+        return pow (0.0001f, 1.0f / rateToSamples (rate));
+    }
+
+    bool noteActive = false;
+    
+    float attackRamp, decayMultiplier, releaseMultiplier;
+    let targetValue = 0.5f;
+
+    void run()
+    {
+        float value;
+
+        loop
+        {
+            if (noteActive)
+            {
+                // Attack stage
+                while (noteActive && value < targetValue)
+                {
+                    value += attackRamp;
+                    audioOut << value;
+                    advance();
+                }
+
+                // Decay stage
+                while (noteActive && value > (targetValue * sustainLevel))
+                {
+                    value = value * decayMultiplier;
+                    audioOut << value;
+                    advance();
+                }
+
+                // Sustain stage
+                while (noteActive)
+                {
+                    audioOut << value;
+                    advance();
+                }
+            }
+
+            // Releasing
+            value = value * releaseMultiplier;
+
+            audioOut << float(value);
+            advance();
+        }
+    }
+}
+
+//==============================================================================
+processor SineOsc
+{
+    input event (soul::NoteEvents::NoteOn,
+                 soul::NoteEvents::NoteOff) eventIn;
+
+    output stream float audioOut;
+
+    event eventIn (soul::NoteEvents::NoteOn e)
+    {
+        currentNote = e.note;
+        phaseIncrement = float (twoPi * processor.period * soul::noteNumberToFrequency (e.note));
+    }
+
+    event eventIn (soul::NoteEvents::NoteOff e)
+    {
+        if (e.note == currentNote)
+            currentNote = 0;
+    }
+
+    float currentNote, phaseIncrement, amplitude;
+
+    void run()
+    {
+        float phase;
+        phaseIncrement = 0.0f;
+
+        loop
+        {
+            phase = addModulo2Pi (phase, phaseIncrement);
+
+            audioOut << sin (phase);
+            advance();
+        }
+    }
+}
