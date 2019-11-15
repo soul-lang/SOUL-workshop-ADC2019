@@ -1,0 +1,19 @@
+processor Oscillator [[ main ]]
+{
+    input stream float modulationRate  [[ name: "Rate", min: 0.1, max:1000.0, init: 2.0, step: 0.1 ]];
+    input stream float modulationDepth [[ name: "Depth", min: 0.0, max:100.0, init: 50.0 ]];
+    input stream float modulationShape [[ name: "Shape", min: 0, max:1, init:0, text: "Sine|Triangle"]];
+
+    output stream float audioOut;
+
+    void run()
+    {
+        float phase;
+
+        loop
+        {
+            // TODO
+            advance();
+        }
+    }
+}

@@ -1,0 +1,74 @@
+graph Chorus [[ main ]]
+{
+    input stream float modulationRate  [[ name: "Rate", min: 0.1, max:1000.0, init: 2.0, step: 0.1 ]];
+    input stream float modulationDepth [[ name: "Depth", min: 0.0, max:100.0, init: 50.0 ]];
+    input stream float modulationShape [[ name: "Shape", min: 0, max:1, init:0, text: "Sine|Triangle"]];
+
+    output stream float<2> audioOut;
+
+    let
+    {
+        oscillator = Oscillator;
+        panner = StereoPanner (1.0f);
+    }
+
+    connection
+    {
+        modulationRate  -> oscillator.modulationRate;
+        modulationDepth -> oscillator.modulationDepth;
+        modulationShape -> oscillator.modulationShape;
+
+        oscillator.audioOut -> panner.audioIn;
+        panner.audioOut     -> audioOut;
+    }
+}
+
+// ---------------------------------------------------------------------
+processor StereoPanner (float panPosition)
+{
+    input stream float audioIn;
+    output stream float<2> audioOut;
+
+    // TODO
+}
+
+// ---------------------------------------------------------------------
+processor Oscillator
+{
+    input stream float modulationRate  [[ name: "Rate", min: 0.1, max:1000.0, init: 2.0, step: 0.1 ]];
+    input stream float modulationDepth [[ name: "Depth", min: 0.0, max:100.0, init: 50.0 ]];
+    input stream float modulationShape [[ name: "Shape", min: 0, max:1, init:0, text: "Sine|Triangle"]];
+
+    output stream float audioOut;
+
+    bool isSineWaveform (float modulationShape)
+    {
+        return modulationShape < 0.5f;
+    }
+
+    float getSineValue (float phase)
+    {
+        return sin (phase * float (twoPi));
+    }
+
+    float getTriangleValue (float phase)
+    {
+        return (phase < 0.5f) ? -1.0f + (phase * 4.0f) : 1.0f - ((phase - 0.5f) * 4.0f);
+    }
+
+    void run()
+    {
+        float phase;
+
+        loop
+        {
+            let value = isSineWaveform (modulationShape) ? getSineValue (phase) : getTriangleValue (phase);
+
+            audioOut << modulationDepth * 0.01f * value;
+
+            phase = fmod (phase + modulationRate * float (processor.period), 1.0f);
+            advance();
+        }
+    }
+}
+

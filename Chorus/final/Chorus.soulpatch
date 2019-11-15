@@ -1,0 +1,15 @@
+
+{
+    "soulPatchV1":
+    {
+        "ID":               "dev.soul.Chorus",
+        "version":          "0.1",
+        "name":             "Chorus",
+        "description":      "This is a SOUL Patch called Chorus!",
+        "category":         "effect",
+        "manufacturer":     "Roli Ltd",
+        "isInstrument":     "false",
+
+        "source":           [ "Chorus.soul" ],
+    }
+}
