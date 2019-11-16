@@ -47,8 +47,8 @@ processor Delay
 
         loop
         {
-            let delayMs = delayLength * samplesPerMs * (1.0f + modulationIn) + 1.0f;
-            let delayedValue = readLinearInterpolated (buffer, float(writePos) - delayMs);
+            let delaySamples = delayLength * samplesPerMs * (1.0f + modulationIn) + 1.0f;
+            let delayedValue = readLinearInterpolated (buffer, float(writePos) - delaySamples);
             buffer[writePos] = audioIn;
 
             audioOut << delayedValue;
