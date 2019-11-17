@@ -14,7 +14,7 @@ graph MonoSynth  [[main]]
     let
     {
         midiParser = midi::MPEParser;
-        voice = SineOsc;
+        voice      = SineOsc;
         waveshaper = Waveshaper;
     }
 
@@ -32,21 +32,16 @@ graph MonoSynth  [[main]]
 //==============================================================================
 processor Waveshaper
 {
-    input stream float audioIn;
     input stream float drive [[ name: "Drive", min: 1.0, max: 50.0, init: 1.0 ]];
 
+    input stream float audioIn;
     output stream float audioOut;
-
-    float shape (float f)
-    {
-        return tanh (f);
-    }
 
     void run()
     {
         loop
         {
-            audioOut << shape (drive * audioIn);
+            audioOut << tanh (drive * audioIn);
             advance();
         }
     }
